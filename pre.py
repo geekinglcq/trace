@@ -43,7 +43,8 @@ def get_velocity(dots, x_only=False):
     """
     Get the features that related to acceleration
     Input: dots series, x_only flag to control if we only take x axis as consideration 
-    Return: a list of features related to velocity, including [mean, max, min, variance]
+    Return: a list of features related to velocity, including [mean, max, min, variance, z_per]
+    z_per denote the percentage of zero in whole velocity list
     if no velocity can be calculated, return None
     """
     
@@ -54,8 +55,9 @@ def get_velocity(dots, x_only=False):
         v.append(float(dist(dots[i + 1], dots[i])) / (dots[i + 1][2] - dots[i][2]))
     if len(v) ==0:
         return None
+    z_per = float(sum([1 for i in v if i == 0])) / len(v)
     v = np.array(v)
-    return [v.mean(), v.max(), v.min(), v.var()]
+    return [v.mean(), v.var(), z_per]
 
 def get_acc_speed(dots, x_only=False):
     """
@@ -77,7 +79,7 @@ def get_acc_speed(dots, x_only=False):
     acc = np.array(acc)
     return [acc.mean(), acc.max(), acc.min(), acc.var()]
 
-def extract_feature(file, with_label):
+def extract_feature(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
     Input: dataset filename
@@ -86,9 +88,9 @@ def extract_feature(file, with_label):
     a_fs = accerlation features
     
     """
-    f = open('sample-features','w')
-    f2 = open('id-map','w')
-    f3 = open('inval-id','w')
+    f = open(prefix+'sample-features','w')
+    f2 = open(prefix+'id-map','w')
+    f3 = open(prefix+'inval-id','w')
     for rank,line in enumerate(open(file)):
         sample = handle_one(line, with_label=with_label)
         ID = sample[0]
