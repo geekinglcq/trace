@@ -79,7 +79,7 @@ def get_acc_speed(dots, x_only=False):
     acc = np.array(acc)
     return [acc.mean(), acc.max(), acc.min(), acc.var()]
 
-def extract_feature(file, with_label=True, prefix=''):
+def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
     Input: dataset filename
@@ -91,7 +91,7 @@ def extract_feature(file, with_label=True, prefix=''):
     f = open(prefix+'sample-features','w')
     f2 = open(prefix+'id-map','w')
     f3 = open(prefix+'inval-id','w')
-    for rank,line in enumerate(open(file)):
+    for line in enumerate(open(file)):
         sample = handle_one(line, with_label=with_label)
         ID = sample[0]
         label = sample[3]
@@ -104,4 +104,4 @@ def extract_feature(file, with_label=True, prefix=''):
         for i,j in enumerate(chain(v_fs, a_fs)):
             features = features + str(i) + ':' + str(j) + ' '
         f.write('%s %s\n'%(label, features))
-        f2.write('%d %s\n'%(rank, ID))
+        f2.write('%s\n'%(ID))

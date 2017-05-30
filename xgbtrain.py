@@ -22,11 +22,20 @@ def tune_para(para, datafile):
                         xgb.callback.early_stop(3)])
 
 def predict(modelfile, datafile):
+    """
+    Return predictation of datafile using model stored
+    """
     bst = xgb.Booster(model_file=modelfile)
     test = xgb.DMatrix(datafile)
     pred = bst.predict(datafile)
+    return pred
+
 
 def print_eval(pred, labels):
+    """
+    Print eval 
+    Inputs: predictation and labels
+    """
     corr = (pred > 0.5) == labels
     acc = sum(corr) / len(labels)
     pre_neg_sum = len(labels) - sum(labels)
@@ -35,3 +44,12 @@ def print_eval(pred, labels):
     precision = neg_pos / pre_neg_sum
     recall = neg_pos / true_neg_sum
     print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
+
+def gen_ans_txt(pred, thresold=0.8, id_map='id-map'):
+    with open(id_map) as f:
+        idx = np.array([int(i.strip()) for i in f])
+    mask = np.logical_not(pred >= 0.8)
+    with open('ans.txt','w') as f:
+        for i in idx[mask]:
+            f.write('%s\n'%(i))
+    
