@@ -24,4 +24,14 @@ def tune_para(para, datafile):
 def predict(modelfile, datafile):
     bst = xgb.Booster(model_file=modelfile)
     test = xgb.DMatrix(datafile)
-    pred = bst.predict(datafile)    
+    pred = bst.predict(datafile)
+
+def print_eval(pred, labels):
+    corr = (pred > 0.5) == labels
+    acc = sum(corr) / len(labels)
+    pre_neg_sum = len(labels) - sum(labels)
+    true_neg_sum = len(pred) - sum(pred > 0.5)
+    neg_pos = sum(np.logical_and(corr, np.logical_not(labels)))
+    precision = neg_pos / pre_neg_sum
+    recall = neg_pos / true_neg_sum
+    print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
