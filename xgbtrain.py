@@ -2,7 +2,7 @@ import xgboost as xgb
 import numpy as np
 
 def train(traindata, testdata, modelfile):
-    param = {'eta': 0.3, 'max_depth': 2, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
+    param = {'eta': 0.3, 'max_depth': 6, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
     num_round = 100
     dtrain = xgb.DMatrix(traindata)
     dtest = xgb.DMatrix(testdata)
@@ -27,7 +27,7 @@ def predict(modelfile, datafile):
     """
     bst = xgb.Booster(model_file=modelfile)
     test = xgb.DMatrix(datafile)
-    pred = bst.predict(datafile)
+    pred = bst.predict(test)
     return pred
 
 
@@ -45,11 +45,12 @@ def print_eval(pred, labels):
     recall = neg_pos / true_neg_sum
     print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
 
-def gen_ans_txt(pred, thresold=0.8, id_map='id-map'):
+def gen_ans_txt(pred, thresold=0.8, prex = ''):
+    id_map = prex + 'id-map'
     with open(id_map) as f:
         idx = np.array([int(i.strip()) for i in f])
     mask = np.logical_not(pred >= 0.8)
-    with open('ans.txt','w') as f:
+    with open(prex + 'ans.txt', 'w') as f:
         for i in idx[mask]:
             f.write('%s\n'%(i))
     

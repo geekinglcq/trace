@@ -1,6 +1,7 @@
 import math
 import pandas as pd
-import numpy as np 
+import numpy as np
+import codecs
 import matplotlib.pyplot as plt
 
 from pandas import DataFrame, Series
@@ -79,6 +80,46 @@ def get_acc_speed(dots, x_only=False):
     acc = np.array(acc)
     return [acc.mean(), acc.max(), acc.min(), acc.var()]
 
+def dotMinus(dot1, dot2):
+    """
+    dot2 - dot1 (list - list)
+    """
+    res = []
+    for i in range(len(dot2)):
+        res.append(dot2[i] - dot1[i])
+    return res
+def dotProduct(dot1, dot2):
+    """
+    dot1 . dot2
+    """
+    res = 0
+    for i in range(len(dot2)):
+        res += (dot1[i] * dot2[i])
+    return res
+def toward_dest(dots, dest_point, x_only=False):
+    """
+    get the features related to the dots and the destination
+    """
+    result = []
+    dist_to_dest = []
+    for i in range(len(dots)):
+        dist_to_dest.append(dotMinus(dots[i], dest_point))
+
+    tmp = []
+    for i in range(len(dist_to_dest)):
+        tmp.append(dist(dist_to_dest[i], [0, 0]))
+    tmp = np.array(tmp)
+    if len(tmp):
+        result += [tmp.mean(), tmp.min(), tmp.max(), tmp.var()]
+
+    tmp = []
+    for i in range(len(dist_to_dest) - 1):
+        tmp.append(dotProduct(dist_to_dest[i], dist_to_dest[i+1]))
+    tmp = np.array(tmp)
+    if len(tmp):
+        result += [tmp.mean(), tmp.min(), tmp.max(), tmp.var()]
+    return result
+
 def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
@@ -91,17 +132,20 @@ def extract_features(file, with_label=True, prefix=''):
     f = open(prefix+'sample-features','w')
     f2 = open(prefix+'id-map','w')
     f3 = open(prefix+'inval-id','w')
-    for line in enumerate(open(file)):
-        sample = handle_one(line, with_label=with_label)
-        ID = sample[0]
-        label = sample[3]
-        v_fs = get_velocity(sample[1])
-        a_fs = get_acc_speed(sample[1])
-        if(v_fs == None) or (a_fs == None):
-            f3.write('%s\n'%(ID))
-            continue
-        features = ""
-        for i,j in enumerate(chain(v_fs, a_fs)):
-            features = features + str(i) + ':' + str(j) + ' '
-        f.write('%s %s\n'%(label, features))
-        f2.write('%s\n'%(ID))
+    with codecs.open(file, 'r', 'utf-8') as fdata:
+        for line in fdata.readlines():
+            line = line.strip()
+            sample = handle_one(line, with_label=with_label)
+            ID = sample[0]
+            label = sample[3]
+            v_fs = get_velocity(sample[1])
+            a_fs = get_acc_speed(sample[1])
+            dot_to_dest = toward_dest(sample[1], sample[2])
+            if(v_fs == None) or (a_fs == None):
+                f3.write('%s\n'%(ID))
+                continue
+            features = ""
+            for i,j in enumerate(chain(v_fs, a_fs, dot_to_dest)):
+                features = features + str(i) + ':' + str(j) + ' '
+            f.write('%s %s\n'%(label, features))
+            f2.write('%s\n'%(ID))
