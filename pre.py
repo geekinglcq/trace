@@ -99,6 +99,8 @@ def dotProduct(dot1, dot2):
 def toward_dest(dots, dest_point, x_only=False):
     """
     get the features related to the dots and the destination
+    1. the distance
+    2. the dot product of the two adjacent vector
     """
     result = []
     dist_to_dest = []
