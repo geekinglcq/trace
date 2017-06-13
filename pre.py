@@ -57,8 +57,9 @@ def get_velocity(dots, x_only=False):
     if len(v) ==0:
         return None
     z_per = float(sum([1 for i in v if i == 0])) / len(v)
+    v_num = len(v)
     v = np.array(v)
-    return [v.mean(), v.var(), z_per]
+    return [v.mean(), v.var(), z_per, v_num]
 
 def get_acc_speed(dots, x_only=False):
     """
