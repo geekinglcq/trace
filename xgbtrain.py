@@ -3,7 +3,7 @@ import numpy as np
 
 def train(traindata, testdata, modelfile):
     param = {'eta': 0.3, 'max_depth': 6, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
-    num_round = 100
+    num_round = 200
     dtrain = xgb.DMatrix(traindata)
     dtest = xgb.DMatrix(testdata)
     bst = xgb.train(param, dtrain, num_round, [(dtest, 'eval'),(dtrain, 'train')])
@@ -53,4 +53,3 @@ def gen_ans_txt(pred, thresold=0.8, prex = ''):
     with open(prex + 'ans.txt', 'w') as f:
         for i in idx[mask]:
             f.write('%s\n'%(i))
-    
