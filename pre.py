@@ -45,8 +45,7 @@ def get_velocity(dots, x_only=False):
     Get the features that related to acceleration
     Input: dots series, x_only flag to control if we only take x axis as consideration 
     Return: a list of features related to velocity, including [mean, max, min, variance, z_per]
-    z_per -- denote the percentage of zero in whole velocity list
-    v_num -- volumn of velocity points
+    z_per denote the percentage of zero in whole velocity list
     if no velocity can be calculated, return None
     """
     
@@ -54,7 +53,7 @@ def get_velocity(dots, x_only=False):
     for i in range(len(dots) - 1): 
         if(dots[i + 1][2] <= dots[i][2]):
             return None
-        v.append(float(dist(dots[i + 1], dots[i], x_only=x_only)) / (dots[i + 1][2] - dots[i][2]))
+        v.append(float(dist(dots[i + 1], dots[i])) / (dots[i + 1][2] - dots[i][2]))
     if len(v) ==0:
         return None
     z_per = float(sum([1 for i in v if i == 0])) / len(v)
@@ -73,7 +72,7 @@ def get_acc_speed(dots, x_only=False):
     for i in range(len(dots) - 1): 
         if(dots[i + 1][2] <= dots[i][2]):
             return None
-        v.append(float(dist(dots[i + 1], dots[i], x_only=x_only)) / (dots[i + 1][2] - dots[i][2]))
+        v.append(float(dist(dots[i + 1], dots[i])) / (dots[i + 1][2] - dots[i][2]))
     if len(v) <= 1:
         return None
     acc = []
@@ -81,19 +80,6 @@ def get_acc_speed(dots, x_only=False):
         acc.append((v[i + 1] - v[i]) / (dots[i + 1][2] - dots[i][2]))
     acc = np.array(acc)
     return [acc.mean(), acc.max(), acc.min(), acc.var()]
-
-def get_other_features(dots):
-    """
-    Features that cannot be classify temporarily
-    Including:
-    1. If or not the dots in x axis go back out. 1-Y 0-N
-    """
-    go_back = 0
-    for i in range(len(dots) - 1):
-        if (dots[i + 1][0] < dots[i][0]):
-            go_back = 1
-    
-    return [go_back]
 
 def dotMinus(dot1, dot2):
     """
@@ -137,6 +123,45 @@ def toward_dest(dots, dest_point, x_only=False):
         result += [tmp.mean(), tmp.min(), tmp.max(), tmp.var()]
     return result
 
+def get_other_features(dots):
+    """
+    Features that cannot be classify temporarily
+    Including:
+    1. If or not the dots in x axis go back out. 1-Y 0-N
+    """
+    go_back = 0
+    for i in range(len(dots) - 1):
+        if (dots[i + 1][0] < dots[i][0]):
+            go_back = 1
+    
+    return [go_back]
+
+def get_density(dots,x_only=True):
+    '''
+    Features related to the density of points about x-ray
+    If there is only one point return 0. If not, return density.
+    '''
+    x = []
+    for i in dots:
+        x.append(int(i[0]))
+    x = np.array(x)
+    if (x.max()-x.min())>=1:
+        density = float(len(x))/(x.max()-x.min())
+    else:
+        density = 0
+    return [density]
+
+def get_y_min(dots):
+    '''
+    Features related to y-values.
+    Return the minimum of y-values.
+    ''' 
+    y = []
+    for i in dots:
+        y.append(int(i[1]))
+    y = np.array(y)
+    return [y.min()]
+
 def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
@@ -161,11 +186,13 @@ def extract_features(file, with_label=True, prefix=''):
             a_fs_x_only = get_acc_speed(sample[1], x_only=True)
             dot_to_dest = toward_dest(sample[1], sample[2])
             other_features = get_other_features(sample[1])
+            density = get_density(sample[1])
+            y_min = get_y_min(sample[1])
             if(v_fs == None) or (a_fs == None):
                 f3.write('%s\n'%(ID))
                 continue
             features = ""
-            for i,j in enumerate(chain(v_fs, a_fs, v_fs_x_only, a_fs_x_only, dot_to_dest, other_features)):
+            for i,j in enumerate(chain(v_fs, a_fs, v_fs_x_only, a_fs_x_only, dot_to_dest, other_features, density, y_min)):
                 features = features + str(i) + ':' + str(j) + ' '
             f.write('%s %s\n'%(label, features))
             f2.write('%s\n'%(ID))
