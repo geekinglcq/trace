@@ -178,7 +178,6 @@ def toward_dest(dots, dest_point, x_only=False):
         feature_dic['toward_dist_dot_product_var'] = tmp.var()
     return feature_dic
 
-<<<<<<< HEAD
 def get_other_features(dots):
     """
     Features that cannot be classify temporarily
@@ -218,7 +217,6 @@ def get_y_min(dots):
     y = np.array(y)
     return [y.min()]
 
-=======
 def get_angle_change(dots):
     """
     get the angle changes along the path
@@ -243,7 +241,6 @@ def get_angle_change(dots):
         feature_dic['angle_max'] = tmp.max()
         feature_dic['angle_var'] = tmp.var()
     return feature_dic
->>>>>>> refs/remotes/origin/+trace_abstrcode
 def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
@@ -270,21 +267,6 @@ def extract_features(file, with_label=True, prefix=''):
 
             ID = sample[0]
             label = sample[3]
-<<<<<<< HEAD
-            v_fs = get_velocity(sample[1])
-            a_fs = get_acc_speed(sample[1])
-            v_fs_x_only = get_velocity(sample[1], x_only=True)
-            a_fs_x_only = get_acc_speed(sample[1], x_only=True)
-            dot_to_dest = toward_dest(sample[1], sample[2])
-            other_features = get_other_features(sample[1])
-            density = get_density(sample[1])
-            y_min = get_y_min(sample[1])
-            if(v_fs == None) or (a_fs == None):
-                f3.write('%s\n'%(ID))
-                continue
-            features = ""
-            for i,j in enumerate(chain(v_fs, a_fs, v_fs_x_only, a_fs_x_only, dot_to_dest, other_features, density, y_min)):
-=======
 
             feature_dict = dict()
             #point coordinate features
@@ -341,7 +323,6 @@ def extract_features(file, with_label=True, prefix=''):
                 continue
             features = ""
             for i,j in enumerate(feature_dict.values()):
->>>>>>> refs/remotes/origin/+trace_abstrcode
                 features = features + str(i) + ':' + str(j) + ' '
             f.write('%s %s\n'%(label, features))
             f2.write('%s\n'%(ID))
