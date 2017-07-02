@@ -1,12 +1,28 @@
 import xgboost as xgb
 import numpy as np
-
+import operator
+import codecs
 def train(traindata, testdata, modelfile):
     param = {'eta': 0.3, 'max_depth': 6, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
     num_round = 200
     dtrain = xgb.DMatrix(traindata)
     dtest = xgb.DMatrix(testdata)
     bst = xgb.train(param, dtrain, num_round, [(dtest, 'eval'),(dtrain, 'train')])
+    feature_importance = bst.get_fscore()
+    print(len(feature_importance))
+    feature_importance = sorted(feature_importance.items(), key=operator.itemgetter(1))
+    #convert feature_importance to feature dictionary
+
+    feature_map_dic = {}
+    with codecs.open('./output/' + 'feature_map', 'r', 'utf-8') as f_feature_map:
+        cnt_line = 0
+        ln = f_feature_map.readline()
+        for ln in f_feature_map.readlines():
+            f_name = ln.strip()
+            feature_map_dic[str('f' + str(cnt_line))] = f_name
+            cnt_line += 1
+    for fi in feature_importance:
+        print(str(feature_map_dic[str(fi[0])]) + ' ' + str(fi[1]))
     bst.save_model(modelfile)
     print('Model has been saved as %s\n'%(modelfile))
     return bst
@@ -45,11 +61,11 @@ def print_eval(pred, labels):
     recall = neg_pos / true_neg_sum
     print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
 
-def gen_ans_txt(pred, thresold=0.8, prex = ''):
+def gen_ans_txt(pred, thresold=0.7, prex = ''):
     id_map = prex + 'id-map'
     with open(id_map) as f:
         idx = np.array([int(i.strip()) for i in f])
-    mask = np.logical_not(pred >= 0.8)
+    mask = np.logical_not(pred >= 0.7)
     with open(prex + 'ans.txt', 'w') as f:
         for i in idx[mask]:
             f.write('%s\n'%(i))
