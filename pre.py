@@ -188,8 +188,9 @@ def get_other_features(dots):
     for i in range(len(dots) - 1):
         if (dots[i + 1][0] < dots[i][0]):
             go_back = 1
-    
-    return [go_back]
+    density = get_density(dots)
+
+    return [go_back, density]
 
 def get_density(dots,x_only=True):
     '''
@@ -204,7 +205,7 @@ def get_density(dots,x_only=True):
         density = float(len(x))/(x.max()-x.min())
     else:
         density = 0
-    return [density]
+    return density
 
 def get_y_min(dots):
     '''
