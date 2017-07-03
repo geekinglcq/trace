@@ -61,11 +61,11 @@ def print_eval(pred, labels):
     recall = neg_pos / true_neg_sum
     print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
 
-def gen_ans_txt(pred, thresold=0.7, prex = ''):
+def gen_ans_txt(pred, thresold=0.8, prex = ''):
     id_map = prex + 'id-map'
     with open(id_map) as f:
         idx = np.array([int(i.strip()) for i in f])
-    mask = np.logical_not(pred >= 0.7)
+    mask = np.logical_not(pred >= thresold)
     with open(prex + 'ans.txt', 'w') as f:
         for i in idx[mask]:
             f.write('%s\n'%(i))

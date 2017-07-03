@@ -183,14 +183,19 @@ def get_other_features(dots):
     Features that cannot be classify temporarily
     Including:
     1. If or not the dots in x axis go back out. 1-Y 0-N
+    2. The density of x dots
+    3. Time duration
     """
     go_back = 0
     for i in range(len(dots) - 1):
         if (dots[i + 1][0] < dots[i][0]):
             go_back = 1
+ 
     density = get_density(dots)
 
-    return [go_back, density]
+    time_duration = dots[-1][2] - dots[0][2]
+
+    return {'go_back':go_back, 'density': density, 'time_duration': time_duration}
 
 def get_density(dots,x_only=True):
     '''
@@ -306,7 +311,7 @@ def extract_features(file, with_label=True, prefix=''):
             feature_dict = dict(angle_changes, **feature_dict)
 
             #other features
-            other_features = get_other_features(dots)#1
+            other_features = get_other_features(dots)#2
             feature_dict = dict(other_features, **feature_dict)
 
             feature_dict = collections.OrderedDict(feature_dict)
