@@ -4,10 +4,10 @@ import operator
 import codecs
 def train(traindata, testdata, modelfile):
     param = {'eta': 0.3, 'max_depth': 6, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
-    num_round = 200
+    num_round = 2000
     dtrain = xgb.DMatrix(traindata)
     dtest = xgb.DMatrix(testdata)
-    bst = xgb.train(param, dtrain, num_round, [(dtest, 'eval'),(dtrain, 'train')])
+    bst = xgb.train(param, dtrain, num_round, [(dtest, 'eval'),(dtrain, 'train')], early_stopping_rounds = 50)
     feature_importance = bst.get_fscore()
     print(len(feature_importance))
     feature_importance = sorted(feature_importance.items(), key=operator.itemgetter(1))

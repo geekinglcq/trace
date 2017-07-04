@@ -64,6 +64,7 @@ def get_velocity(dots, x_only=False, y_only=False):
     Return: a list of features related to velocity, including [mean, max, min, variance, z_per]
     z_per -- denote the percentage of zero in whole velocity list
     v_num -- volumn of velocity points
+    zero_v_time_per -- zero velocity's percentage in the all time
     if no velocity can be calculated, return None
     """
     
@@ -73,6 +74,12 @@ def get_velocity(dots, x_only=False, y_only=False):
     if len(v) ==0:
         return {}
     z_per = float(sum([1 for i in v if i == 0])) / len(v)
+    z_v_time = 0
+    for i in range(len(dots) - 1):
+        if v[i] < eps:
+            z_v_time += dots[i+1][2] - dots[i][2]
+    zero_v_time_per = z_v_time / (eps + dots[-1][2] - dots[0][2])
+
     v_num = len(v)
     v = np.array(v)
 
@@ -84,7 +91,7 @@ def get_velocity(dots, x_only=False, y_only=False):
     feature_dic['velocity_max' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v.max()
     feature_dic['velocity_z_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = z_per
     feature_dic['velocity_v_num' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v_num
-
+    feature_dic['velocity_zero_v_time_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = zero_v_time_per
     return feature_dic
 
 def get_acc_speed(dots, x_only=False, y_only = False):
@@ -102,6 +109,10 @@ def get_acc_speed(dots, x_only=False, y_only = False):
     acc = []
     for i in range(len(v) - 1):
         acc.append((v[i + 1] - v[i]) / (eps + dots[i + 1][2] - dots[i][2]))
+
+    z_per_acc = float(sum([1 for i in acc if i == 0])) / len(acc)
+    v_num_acc = len(acc)
+
     acc = np.array(acc)
 
     # add the feture to the dictionary
@@ -110,23 +121,10 @@ def get_acc_speed(dots, x_only=False, y_only = False):
     feature_dic['acc_max' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.max()
     feature_dic['acc_min' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.min()
     feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.var()
+    feature_dic['z_pre_acc'] = z_per_acc
+    feature_dic['v_num_acc'] = v_num_acc
     return feature_dic
 
-def get_other_features(dots):
-    """
-    Features that cannot be classify temporarily
-    Including:
-    1. If or not the dots in x axis go back out. 1-Y 0-N
-    """
-    go_back = 0
-    for i in range(len(dots) - 1):
-        if (dots[i + 1][0] < dots[i][0]):
-            go_back = 1
-
-    # add the feture to the dictionary
-    feature_dic = {}
-    feature_dic['is_x_go_back'] = go_back
-    return feature_dic
 
 def dotMinus(dot1, dot2):
     """
@@ -184,7 +182,6 @@ def get_other_features(dots):
     Including:
     1. If or not the dots in x axis go back out. 1-Y 0-N
     2. The density of x dots
-    3. Time duration
     """
     go_back = 0
     for i in range(len(dots) - 1):
@@ -193,9 +190,8 @@ def get_other_features(dots):
  
     density = get_density(dots)
 
-    time_duration = dots[-1][2] - dots[0][2]
 
-    return {'go_back':go_back, 'density': density, 'time_duration': time_duration}
+    return {'go_back':go_back, 'density': density}
 
 def get_density(dots,x_only=True):
     '''
@@ -246,7 +242,60 @@ def get_angle_change(dots):
         feature_dic['angle_min'] = tmp.min()
         feature_dic['angle_max'] = tmp.max()
         feature_dic['angle_var'] = tmp.var()
+
+    angle_v = []
+    #get angle velocity
+    angle_change = list(tmp)
+    for i in range(len(angle_change) - 1):
+        angle_v.append((angle_change[i+1] - angle_change[i]) / (eps + (dots[i+1][2] - dots[i][2])))
+    angle_v = np.array(angle_v)
+    if len(angle_v) > 0:
+        feature_dic['angle_v_mean'] = angle_v.mean()
+        feature_dic['angle_v_min'] = angle_v.min()
+        feature_dic['angle_v_max'] = angle_v.max()
+        feature_dic['angle_v_var'] = angle_v.var()
+
+    #get angle acc
+    angle_acc = []
+    angle_v = list(angle_v)
+    if len(angle_v) > 1:
+        for i in range(len(angle_v) - 1):
+            angle_acc.append((angle_v[i + 1] - angle_v[i]) / (eps + (dots[i + 1][2] - dots[i][2])))
+        angle_acc = np.array(angle_acc)
+        feature_dic['angle_ac_mean'] = angle_acc.mean()
+        feature_dic['angle_acc_min'] = angle_acc.min()
+        feature_dic['angle_acc_max'] = angle_acc.max()
+        feature_dic['angle_acc_var'] = angle_acc.var()
+
     return feature_dic
+
+def get_time_feature(dots):
+    """
+    get features related to time series(time only)
+    """
+    feature_dic = {}
+    time_list = []
+    for i in range(len(dots)):
+        time_list.append(dots[i][2])
+    time_list = np.array(time_list)
+
+    feature_dic['time_mean'] = time_list.mean()
+    feature_dic['time_duration'] = time_list.max() - time_list.min()
+    feature_dic['time_var'] = time_list.var()
+
+    time_interval = []
+    for i in range(len(time_list) - 1):
+        time_interval.append(time_list[i+1] - time_list[i])
+
+    time_interval = np.array(time_interval)
+    if len(time_interval):
+        feature_dic['time_interval_mean'] = time_interval.mean()
+        feature_dic['time_interval_min'] = time_interval.min()
+        feature_dic['time_interval_max'] = time_interval.max()
+        feature_dic['time_interval_var'] = time_interval.var()
+
+    return feature_dic
+
 def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
@@ -306,13 +355,17 @@ def extract_features(file, with_label=True, prefix=''):
             dot_to_dest = toward_dest(dots, sample[2])#8
             feature_dict = dict(dot_to_dest, **feature_dict)
 
-            #angle changes along the path
+            #angle changes, v, acc along the path
             angle_changes = get_angle_change(dots)#4
             feature_dict = dict(angle_changes, **feature_dict)
 
             #other features
             other_features = get_other_features(dots)#2
             feature_dict = dict(other_features, **feature_dict)
+
+            #time series features
+            time_features = get_time_feature(dots)
+            feature_dict = dict(time_features, **feature_dict)
 
             feature_dict = collections.OrderedDict(feature_dict)
 
