@@ -105,6 +105,7 @@ def get_velocity(dots, x_only=False, y_only=False):
     feature_dic['velocity_z_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = z_per
     feature_dic['velocity_v_num' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v_num
     feature_dic['velocity_zero_v_time_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = zero_v_time_per
+    feature_dic['velocity_init' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v[0]
     return feature_dic
 
 def get_acc_speed(dots, x_only=False, y_only = False):
@@ -143,6 +144,7 @@ def get_acc_speed(dots, x_only=False, y_only = False):
     feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.var()
     feature_dic['z_pre_acc'] = z_per_acc
     feature_dic['v_num_acc'] = v_num_acc
+    feature_dic['acc_init'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc[0]
     return feature_dic
 
 
@@ -213,6 +215,7 @@ def get_other_features(dots):
     1. If or not the dots in x axis go back out. 1-Y 0-N
     2. The density of x dots
     3. The count of pause of mouse trace
+    4. x_init, y_init
     """
     go_back = 0
     for i in range(len(dots) - 1):
@@ -229,7 +232,7 @@ def get_other_features(dots):
             pause += 1
 
 
-    return {'go_back':go_back, 'density_0': density_0, 'density_1': density_1, 'pause': pause}
+    return {'go_back':go_back, 'density_0': density_0, 'density_1': density_1, 'pause': pause, 'x_init': dots[0][0], 'y_init': dots[0][1]}
 
 def get_density(dots, axis):
     '''
@@ -260,6 +263,7 @@ def get_smooth(dots, axis):
         smooth_1 = np.std(np.diff(dots_axis)) / (eps + abs((np.diff(dots_axis)).mean()))
     feature_dic = {}
     feature_dic['*smooth_1_' + str(axis)] = smooth_1
+    return feature_dic
 
 def get_y_min(dots):
     '''
