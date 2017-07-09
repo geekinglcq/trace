@@ -212,31 +212,54 @@ def get_other_features(dots):
     Including:
     1. If or not the dots in x axis go back out. 1-Y 0-N
     2. The density of x dots
+    3. The count of pause of mouse trace
     """
     go_back = 0
     for i in range(len(dots) - 1):
         if (dots[i + 1][0] < dots[i][0]):
             go_back = 1
- 
-    density = get_density(dots)
+    
+    
+    density_0 = get_density(dots, 0)
+    density_1 = get_density(dots, 1)
+
+    pause = 0
+    for i in range(len(dots) - 1):
+        if (dots[i + 1][0] == dots[i][0]):
+            pause += 1
 
 
-    return {'go_back':go_back, 'density': density}
+    return {'go_back':go_back, 'density_0': density_0, 'density_1': density_1, 'pause': pause}
 
-def get_density(dots,x_only=True):
+def get_density(dots, axis):
     '''
     Features related to the density of points about x-ray
     If there is only one point return 0. If not, return density.
     '''
     x = []
     for i in dots:
-        x.append(int(i[0]))
+        x.append(int(i[axis]))
     x = np.array(x)
     if (x.max()-x.min())>=1:
         density = float(len(x))/(x.max()-x.min())
     else:
         density = 0
     return density
+
+
+def get_smooth(dots, axis):
+    """
+    measure smoothness of a time series
+    """
+    dots_axis = []
+    for i in range(len(dots)):
+        dots_axis.append(dots[i][axis])
+    dots_axis = np.array(dots_axis)
+    smooth_1 = 0
+    if len(dots) > 1:
+        smooth_1 = np.std(np.diff(dots_axis)) / (eps + abs((np.diff(dots_axis)).mean()))
+    feature_dic = {}
+    feature_dic['*smooth_1_' + str(axis)] = smooth_1
 
 def get_y_min(dots):
     '''
@@ -537,6 +560,11 @@ def extract_features(file, with_label=True, prefix=''):
 
             #length of the dots
             feature_dict = dict(get_length_dots(dots), **feature_dict)#2
+
+            #Smooth
+            for i in range(1):
+                smooth_feature = get_smooth(dots, i)
+                feature_dict = dict(smooth_feature, **feature_dict)
 
             feature_dict = collections.OrderedDict(feature_dict)
 
