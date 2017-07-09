@@ -377,11 +377,11 @@ def get_length_dots(dots):
     2. the length of the dots
     """
     feature_dic = {}
-    sum = 0
+    length_sum = 0
     for i in range(len(dots) - 1):
-        sum += math.sqrt(pow_2(dots[i+1][1] - dots[i][1]) + pow_2(dots[i+1][0] - dots[i][0]))
+        length_sum += math.sqrt(pow_2(dots[i+1][1] - dots[i][1]) + pow_2(dots[i+1][0] - dots[i][0]))
     feature_dic['dots_num'] = len(dots)
-    feature_dic['dots_length'] = len(dots)
+    feature_dic['dots_length'] = length_sum
 
     return feature_dic
 def get_horizon_angle(dots):
