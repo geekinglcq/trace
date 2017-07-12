@@ -67,6 +67,7 @@ def get_dis(dots, axis):
     #     dots_list.max() - dots_list.min()
     return feature_dic
 
+
 def get_velocity(dots, x_only=False, y_only=False):
     """
     Get the features that related to acceleration
@@ -93,6 +94,7 @@ def get_velocity(dots, x_only=False, y_only=False):
         # feature_dic['velocity_v_num' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         # feature_dic['velocity_zero_v_time_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str( y_only)] = '$'
         feature_dic['velocity_pos' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        feature_dic['v_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         return feature_dic
     z_per = float(sum([1 for i in v if i == 0])) / len(v)
     z_v_time = 0
@@ -136,6 +138,7 @@ def get_acc_speed(dots, x_only=False, y_only=False):
         feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         feature_dic['z_pre_acc'] = '$'
         feature_dic['v_num_acc'] = '$'
+        feature_dic['acc_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         return feature_dic
     acc = []
     for i in range(len(v) - 1):
@@ -156,6 +159,7 @@ def get_acc_speed(dots, x_only=False, y_only=False):
     feature_dic['z_pre_acc'] = z_per_acc
     feature_dic['v_num_acc'] = v_num_acc
     feature_dic['acc_init'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc[0]
+
     return feature_dic
 
 
@@ -226,10 +230,16 @@ def get_other_features(dots):
     3. The count of pause of mouse trace
     4. x_init, y_init
     """
-    go_back = 0
-    for i in range(len(dots) - 1):
-        if (dots[i + 1][0] < dots[i][0]):
-            go_back = 1
+    x_dot = []
+    y_dot = []
+    for i in range(len(dots)):
+        x_dot.append(dots[i][0])
+        y_dot.append(dots[i][1])
+    x_dot = np.array(x_dot)
+    y_dot = np.array(y_dot)
+    x_back_num = 0
+    if len(dots) > 1:
+        x_back_num = min((np.diff(x_dot) > 0).sum(), (np.diff(x_dot) < 0).sum())
 
     density_0 = get_density(dots, 0)
     density_1 = get_density(dots, 1)
@@ -240,7 +250,8 @@ def get_other_features(dots):
         if dots[i + 1][0] == dots[i][0]:
             pause += 1
 
-    return {'go_back':go_back, 'density_2': density_2, 'density_0': density_0, 'density_1': density_1, 'pause': pause, 'x_init': dots[0][0], 'y_init': dots[0][1]}
+    return {'go_back_x':x_back_num, 'density_2': density_2, 'density_0': density_0,
+            'density_1': density_1, 'pause': pause, 'x_init': dots[0][0], 'y_init': dots[0][1]}
 
 
 def get_density(dots, axis):
@@ -367,6 +378,15 @@ def get_time_feature(dots):
 
     feature_dic['time_mean'] = time_list.mean()
     feature_dic['time_duration'] = time_list.max() - time_list.min()
+    time_zero = 0
+    if len(dots) > 1:
+        for i in range(len(dots) - 1):
+            if dots[i][0] == dots[i+1][0]:
+                time_zero += dots[i+1][2] - dots[i][2]
+        time_pause_radio = time_zero / (eps + time_list.max() - time_list.min())
+        feature_dic['time_pause_radio'] = time_pause_radio
+    else:
+        feature_dic['time_pause_radio'] = '$'
     # feature_dic['time_var'] = time_list.var()
 
     time_interval = []
@@ -404,7 +424,19 @@ def get_length_dots(dots):
     feature_dic['dots_num'] = len(dots)
     feature_dic['straight'] = sp.spatial.distance.euclidean((dots[0][0], dots[0][1]), (dots[-1][0], dots[-1][1]))/(eps +
                                                                                                         length_sum)
-
+    # negative features
+    # TCM = 0
+    # for i in range(len(dots) - 1):
+    #     TCM += (dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
+    #                                                      pow_2(dots[i][1] - dots[i+1][1]))
+    # TCM /= (length_sum + eps)
+    #
+    # SC = -TCM * TCM
+    # for i in range(len(dots) - 1):
+    #     SC += pow_2(dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
+    #                                                          pow_2(dots[i][1] - dots[i+1][1]))
+    # feature_dic['TCM'] = TCM
+    # feature_dic['SC'] = SC
     return feature_dic
 
 
