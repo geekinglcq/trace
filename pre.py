@@ -508,10 +508,10 @@ def get_horizon_angle(dots):
         feature_dic['h_angle_var'] = '$'
         # feature_dic['h_angle_range'] = '$'
 
-    # if len(h_angle_degree) > 1:
-    #     feature_dic['smooth_h_angle'] = np.std(np.diff(h_angle_degree)) / (eps + abs((np.diff(h_angle_degree)).mean()))
-    # else:
-    #     feature_dic['smooth_h_angle'] = '$'
+    if len(h_angle_degree) > 1:
+        feature_dic['smooth_h_angle'] = np.std(np.diff(h_angle_degree)) / (eps + abs((np.diff(h_angle_degree)).mean()))
+    else:
+        feature_dic['smooth_h_angle'] = '$'
 
     h_angle_speed = []
     for i in range(len(h_angle_degree) - 1):
