@@ -13,7 +13,6 @@ from itertools import chain
 import scipy as sp
 eps = 1e-6
 
-
 def handle_one(line, with_label=True):
     """
     Input: one line data
@@ -94,7 +93,7 @@ def get_velocity(dots, x_only=False, y_only=False):
         # feature_dic['velocity_v_num' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         # feature_dic['velocity_zero_v_time_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str( y_only)] = '$'
         feature_dic['velocity_pos' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
-        feature_dic['v_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        # feature_dic['v_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         return feature_dic
     z_per = float(sum([1 for i in v if i == 0])) / len(v)
     z_v_time = 0
@@ -116,7 +115,7 @@ def get_velocity(dots, x_only=False, y_only=False):
     # feature_dic['velocity_v_num' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v_num
     # feature_dic['velocity_zero_v_time_per' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = zero_v_time_per
     feature_dic['velocity_init' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v[0]
-    feature_dic['velocity_pos' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = np.argmax(v) / len(v)
+    # feature_dic['velocity_pos' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = np.argmax(v) / len(v)
     return feature_dic
 
 
@@ -138,7 +137,7 @@ def get_acc_speed(dots, x_only=False, y_only=False):
         feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         feature_dic['z_pre_acc'] = '$'
         feature_dic['v_num_acc'] = '$'
-        feature_dic['acc_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        # feature_dic['acc_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         return feature_dic
     acc = []
     for i in range(len(v) - 1):
@@ -239,13 +238,16 @@ def get_other_features(dots):
     y_dot = np.array(y_dot)
     x_back_num = 0
     if len(dots) > 1:
-        x_back_num = min((np.diff(x_dot) > 0).sum(), (np.diff(x_dot) < 0).sum())
+        x_back_num = (np.diff(x_dot) < 0).sum()
 
     density_0 = get_density(dots, 0)
     density_1 = get_density(dots, 1)
     density_2 = get_density(dots, 2)
 
     pause = 0
+
+    if x_back_num:
+        x_back_num = 1
     for i in range(len(dots) - 1):
         if dots[i + 1][0] == dots[i][0]:
             pause += 1
