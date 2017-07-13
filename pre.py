@@ -5,6 +5,7 @@ import codecs
 import matplotlib.pyplot as plt
 import collections
 
+from sklearn.datasets import load_svmlight_file
 from pandas import DataFrame, Series
 from itertools import chain
 eps = 1e-6
@@ -296,6 +297,36 @@ def get_time_feature(dots):
 
     return feature_dic
 
+def look(datafile='./output/sample-features'):
+    """
+    Plot the 
+    """
+    data = load_svmlight_file(datafile)
+    X = data[0].toarray()
+    y = data[1]
+    data = np.insert(X, 0, values=y, axis=1)
+    with open('./output/testfeature_map') as f:
+        features = f.readlines()
+        
+    colors = ['red', 'blue']
+
+    for i in range(1, data.shape[1] + 1):
+        pos = data[data[: , 0] == 1]
+        neg = data[data[: , 0] == 0]
+        pos_data = pos[: , i]
+        neg_data = neg[: , i]
+        if i == (data.shape[1]):
+            j = 1
+        else:
+            j = i + 1
+        plt.scatter(pos_data, pos[: , j], c=colors[0], s=25, label='+')
+        plt.scatter(neg_data, neg[: , j], c=colors[1], s=10, label='-')
+        plt.title('%s-%s-th features'%(i-1, j-1))
+        plt.xlabel('%s-th %s'%(i-1, features[i]))
+        plt.ylabel('%s-th %s'%(j-1, features[j]))
+        plt.legend()
+        plt.show()
+
 def extract_features(file, with_label=True, prefix=''):
     """
     Extract features and save features in LibSVM format
@@ -308,6 +339,7 @@ def extract_features(file, with_label=True, prefix=''):
     f = open(prefix+'sample-features','w')
     f2 = open(prefix+'id-map','w')
     f3 = open(prefix+'inval-id','w')
+    first_flag = True
     with codecs.open(file, 'r', 'utf-8') as fdata:
         for line in fdata.readlines():
             line = line.strip()
@@ -368,14 +400,16 @@ def extract_features(file, with_label=True, prefix=''):
             feature_dict = dict(time_features, **feature_dict)
 
             feature_dict = collections.OrderedDict(feature_dict)
-
-            with codecs.open(prefix + 'feature_map', 'w', 'utf-8') as f_feature_map:
-                #one line a feature name
-                #the first line is the number of the features
-                f_feature_map.write(str(len(feature_dict.keys())) + '\n')
-                keys_list = feature_dict.keys()
-                for keyi in keys_list:
-                    f_feature_map.write(keyi + '\n')
+            
+            if first_flag:
+                first_flag = False
+                with codecs.open(prefix + 'feature_map', 'w', 'utf-8') as f_feature_map:
+                    #one line a feature name
+                    #the first line is the number of the features
+                    f_feature_map.write(str(len(feature_dict.keys())) + '\n')
+                    keys_list = feature_dict.keys()
+                    for keyi in keys_list:
+                        f_feature_map.write(keyi + '\n')
 
             if(v_fs == {}) or (a_fs == {}):
                 f3.write('%s\n'%(ID))
