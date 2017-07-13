@@ -11,6 +11,8 @@ import collections
 from pandas import DataFrame, Series
 from itertools import chain
 import scipy as sp
+import scipy.spatial
+import scipy.stats
 eps = 1e-6
 
 def handle_one(line, with_label=True):
@@ -246,8 +248,6 @@ def get_other_features(dots):
 
     pause = 0
 
-    if x_back_num:
-        x_back_num = 1
     for i in range(len(dots) - 1):
         if dots[i + 1][0] == dots[i][0]:
             pause += 1
@@ -300,21 +300,52 @@ def get_y_min(dots):
     return [y.min()]
 
 
-def get_angle_change(dots):
+def get_ab_direction(feature_dic, dots):
     """
-    get the angle changes along the path
+    A, B, C ...
+    the angle between AB and the horizontal line
     """
     point_minus = []
     for i in range(len(dots) - 1):
-        point_minus.append(dotMinus(dots[i+1], dots[i]))
+        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
+    ab_angle = []
+    if len(point_minus):
+        for i in range(len(point_minus)):
+            angle_i = math.atan(point_minus[i][1] / (eps + point_minus[i][0]))
+            ab_angle.append(angle_i)
+        ab_angle = np.array(ab_angle)
+
+        feature_dic['ab_angle_mean'] = ab_angle.mean()
+        feature_dic['ab_angle_min'] = ab_angle.min()
+        feature_dic['ab_angle_max'] = ab_angle.max()
+        feature_dic['ab_angle_var'] = ab_angle.var()
+        feature_dic['ab_angle_range'] = ab_angle.max() - ab_angle.min()
+        feature_dic['ab_angle_kurt'] = sp.stats.kurtosis(ab_angle)
+    else:
+        feature_dic['ab_angle_mean'] = '$'
+        feature_dic['ab_angle_min'] = '$'
+        feature_dic['ab_angle_max'] = '$'
+        feature_dic['ab_angle_var'] = '$'
+        feature_dic['ab_angle_range'] = '$'
+        feature_dic['ab_angle_kurt'] = '$'
+
+def get_angle_change(dots):
+    """
+    A, B, C
+    get the angle of BA and BC
+    """
+    point_minus = []
+    for i in range(len(dots) - 1):
+        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
 
     tmp = []
     if len(point_minus) == 1:
         tmp.append(0)
     else:
         for i in range(len(point_minus) - 1):
-            tmp.append(dotProduct(point_minus[i], point_minus[i+1]) / (eps +
-                                        dist(point_minus[i], [0, 0]) * dist(point_minus[i+1], [0, 0])))
+            abc_angle = dotProduct(point_minus[i], (-point_minus[i+1][0], -point_minus[i+1][1])) / (eps +
+                                        dist(point_minus[i], [0, 0]) * dist(point_minus[i+1], [0, 0]))
+            tmp.append(math.acos(abc_angle))
     feature_dic = {}
     tmp = np.array(tmp)
     # add the feture to the dictionary
@@ -537,7 +568,8 @@ def curvature_distance(dots):
     cur_dis = []
     if len(dots) >= 3:
         for i in range(1, len(dots) - 1):
-            cur_dis.append(point_to_line(dots[i], dots[i-1], dots[i+1]))
+            ac_length = sp.spatial.distance.euclidean((dots[i-1][0], dots[i-1][1]), (dots[i+1][0], dots[i+1][1]))
+            cur_dis.append(point_to_line(dots[i], dots[i-1], dots[i+1]) / (ac_length + eps))
 
         cur_dis = np.array(cur_dis)
         feature_dic['curvature_distance_mean'] = cur_dis.mean()
@@ -675,6 +707,7 @@ def extract_features(file, with_label=True, prefix=''):
             # angle changes, v, acc along the path
             angle_changes = get_angle_change(dots)
             feature_dict = dict(angle_changes, **feature_dict)
+            get_ab_direction(feature_dict, dots)
 
             # get_horizon_angle
             feature_dict = dict(get_horizon_angle(dots), **feature_dict)
