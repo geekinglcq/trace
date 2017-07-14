@@ -242,6 +242,8 @@ def get_other_features(dots):
     x_back_num = 0
     if len(dots) > 1:
         x_back_num = (np.diff(x_dot) < 0).sum()
+        if x_back_num != 0:
+            x_back_num = 1
 
     if x_back_num:
         x_back_num = 1
@@ -353,13 +355,13 @@ def get_angle_change(dots):
     # add the feture to the dictionary
     if len(tmp):
         # feature_dic['angle_mean'] = tmp.mean()
-        # feature_dic['angle_min'] = tmp.min()
+        feature_dic['angle_min'] = tmp.min()
         # feature_dic['angle_max'] = tmp.max()
         feature_dic['angle_var'] = tmp.var()
         feature_dic['angle_kurt_angle'] = sp.stats.kurtosis(tmp)
     else:
         # feature_dic['angle_mean'] = '$'
-        # feature_dic['angle_min'] = '$'
+        feature_dic['angle_min'] = '$'
         # feature_dic['angle_max'] = '$'
         feature_dic['angle_var'] = '$'
         feature_dic['angle_kurt_angle'] = '$'
@@ -548,30 +550,30 @@ def get_horizon_angle(dots):
     h_angle_speed = np.array(h_angle_speed)
     if len(h_angle_speed):
         # feature_dic['h_angle_speed_mean'] = h_angle_speed.mean()
-        # feature_dic['h_angle_speed_min'] = h_angle_speed.min()
+        feature_dic['h_angle_speed_min'] = h_angle_speed.min()
         # feature_dic['h_angle_speed_max'] = h_angle_speed.max()
         feature_dic['h_angle_speed_var'] = h_angle_speed.var()
     else:
         # feature_dic['h_angle_speed_mean'] = '$'
-        # feature_dic['h_angle_speed_min'] = '$'
+        feature_dic['h_angle_speed_min'] = '$'
         # feature_dic['h_angle_speed_max'] = '$'
         feature_dic['h_angle_speed_var'] = '$'
 
-    # h_angle_acc = []
-    # for i in range(len(h_angle_speed) - 1):
-    #     h_angle_acc.append((h_angle_speed[i + 1] - h_angle_speed[i]) / (eps + (dots[i + 1][2] - dots[i][2])))
-    #
-    # h_angle_acc = np.array(h_angle_acc)
-    # if len(h_angle_acc):
+    h_angle_acc = []
+    for i in range(len(h_angle_speed) - 1):
+        h_angle_acc.append((h_angle_speed[i + 1] - h_angle_speed[i]) / (eps + (dots[i + 1][2] - dots[i][2])))
+    
+    h_angle_acc = np.array(h_angle_acc)
+    if len(h_angle_acc):
     #     feature_dic['h_angle_acc_mean'] = h_angle_acc.mean()
     #     feature_dic['h_angle_acc_min'] = h_angle_acc.min()
-    #     feature_dic['h_angle_acc_max'] = h_angle_acc.max()
-    #     feature_dic['h_angle_acc_var'] = h_angle_acc.var()
+        feature_dic['h_angle_acc_max'] = h_angle_acc.max()
+        feature_dic['h_angle_acc_var'] = h_angle_acc.var()
     # else:
     #     feature_dic['h_angle_acc_mean'] = '$'
     #     feature_dic['h_angle_acc_min'] = '$'
-    #     feature_dic['h_angle_acc_max'] = '$'
-    #     feature_dic['h_angle_acc_var'] = '$'
+        feature_dic['h_angle_acc_max'] = '$'
+        feature_dic['h_angle_acc_var'] = '$'
 
     return feature_dic
 
@@ -733,7 +735,12 @@ def extract_features(file, with_label=True, prefix=''):
             feature_dict = dict(dot_to_dest, **feature_dict)
 
             # angle changes, v, acc along the path
-            angle_changes = get_angle_change(dots)
+            try:
+                angle_changes = get_angle_change(dots)
+            except ValueError:
+                print(ID, dots)
+                continue
+
             feature_dict = dict(angle_changes, **feature_dict)
             # get_ab_direction(feature_dict, dots)
 
@@ -759,6 +766,13 @@ def extract_features(file, with_label=True, prefix=''):
             for i in range(3):
                 smooth_feature = get_smooth(dots, i)
                 feature_dict = dict(smooth_feature, **feature_dict)
+            
+            feature_dict['acc_min_x_only_True_y_only_False^2 + angle_min^2'] = pow(feature_dict['acc_min_x_only_True_y_only_False'], 2) + pow(feature_dict['angle_min'],2)
+            feature_dict['acc_min_x_only_False_y_only_False^2 + go_back^2'] = pow(feature_dict['acc_min_x_only_False_y_only_False'], 2) + pow(feature_dict['go_back_x'], 2)
+            feature_dict['point_coordinate_min1^2 + point_coordinate_mean0^2'] = pow(feature_dict['point_coordinate_min1'], 2) + pow(feature_dict['point_coordinate_mean0'], 2)
+            # feature_dict['1/angle_v_var + 1/velocity_init_x_only_False_y_only_False'] = 1 / feature_dict['angle_v_var'] + 1 / feature_dict['velocity_init_x_only_False_y_only_False']
+            feature_dict['point_coordinate_min0^2 + curvature_distance_var^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['curvature_distance_var'], 2)
+            feature_dict['point_coordinate_min0^2 + time_interval_mean^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['time_interval_mean'], 2)
 
             feature_dict = collections.OrderedDict(feature_dict)
 

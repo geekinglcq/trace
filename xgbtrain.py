@@ -2,6 +2,9 @@ import xgboost as xgb
 import numpy as np
 import operator
 import codecs
+
+from sklearn.datasets import load_svmlight_file
+
 def train(traindata, testdata, modelfile):
     param = {'eta': 0.3, 'max_depth': 6, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
     num_round = 2000
@@ -61,11 +64,51 @@ def print_eval(pred, labels):
     recall = neg_pos / true_neg_sum
     print('Acc:%s\tPrecision:%s\tRecall:%s'%(acc, precision, recall))
 
+def apply_rules(feature_file='./output/testsample-features', feature_map='./output/feature_map'):
+    """
+    Apply rules to the model outcoming.
+    Return two sets, the first one contains the sample judged as positive, the second contains the reverse. 
+    """
+    pos = set()
+    neg = set()
+    data = load_svmlight_file(feature_file)
+    X = data[0].toarray()
+    features = {}
+    for idx, line in enumerate(open(feature_map)):
+        features[line.strip()] = idx - 1
+    pos = pos.union(set(np.where(X[:, features['acc_max_x_only_False_y_only_True']] > 0.25)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_var_x_only_False_y_only_False']] > 2)[0]))    
+    pos = pos.union(set(np.where(X[:, features['h_angle_acc_max']] > 0.02)[0]))    
+    pos = pos.union(set(np.where(X[:, features['h_angle_speed_min']] < -0.2)[0]))    
+    pos = pos.union(set(np.where(X[:, features['velocity_mean_x_only_False_y_only_True']] > 2.5)[0]))    
+    pos = pos.union(set(np.where(X[:, features['go_back_x']] >= 1)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_min_x_only_False_y_only_False']] < -2)[0]))    
+    pos = pos.union(set(np.where(X[:, features['h_angle_acc_var']] > 1)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_max_x_only_True_y_only_False']] > 0.5)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_mean_x_only_False_y_only_False']] < -1)[0]))    
+    pos = pos.union(set(np.where(X[:, features['h_angle_speed_var']] > 1)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_max_x_only_False_y_only_False']] > 0.3)[0]))    
+    pos = pos.union(set(np.where(X[:, features['smooth_1_0']] > 1.5)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_mean_x_only_True_y_only_False']] < -1000)[0]))    
+    pos = pos.union(set(np.where(X[:, features['velocity_mean_x_only_False_y_only_False']] > 20)[0]))    
+    pos = pos.union(set(np.where(X[:, features['acc_min_x_only_False_y_only_True']] < -1)[0]))    
+    neg = neg.union(set(np.where(X[:, features['velocity_min_x_only_False_y_only_False']] > 0.5)[0]))
+    
+    return pos, neg    
+    
 def gen_ans_txt(pred, thresold=0.8, prex = ''):
     id_map = prex + 'id-map'
     with open(id_map) as f:
         idx = np.array([int(i.strip()) for i in f])
     mask = np.logical_not(pred >= thresold)
+    ans = set()
+    for i in idx[mask]:
+        ans.add(i)
+    pos, neg = apply_rules()
+    print(len(ans & set(idx[list(pos)])))
+    print(len(set(idx[list(neg)]) - ans))
+    ans = ans - set(idx[list(pos)]) 
+    ans = ans.union(set(idx[list(neg)]))
     with open(prex + 'ans.txt', 'w') as f:
-        for i in idx[mask]:
-            f.write('%s\n'%(i))
+        for i in ans:
+            f.write("%s\n"%(i))
