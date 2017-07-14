@@ -13,6 +13,7 @@ from itertools import chain
 import scipy as sp
 import scipy.spatial
 import scipy.stats
+from collections import defaultdict
 eps = 1e-6
 
 def handle_one(line, with_label=True):
@@ -461,6 +462,47 @@ def get_length_dots(dots):
 
     return feature_dic
 
+def get_direction(angle):
+    if 0 <= angle < math.pi / 4:
+        return 0
+    if math.pi / 4 <= angle < math.pi / 2:
+        return 1
+    if math.pi / 2 <= angle < math.pi * 3 / 4:
+        return 2
+    if math.pi * 3 / 4 <= angle <= math.pi:
+        return 3
+
+    if 0 >= angle > -math.pi / 4:
+        return 4
+    if -math.pi / 4 >= angle > -math.pi / 2:
+        return 5
+    if -math.pi / 2 >= angle > -math.pi * 3 / 4:
+        return 6
+    if -math.pi * 3 / 4 >= angle >= -math.pi:
+        return 7
+
+
+def get_8_direction_radio(feature_dic, dots):
+    point_minus = []
+    for i in range(len(dots) - 1):
+        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
+
+    h_angle_degree = []
+    for i in range(len(point_minus)):
+        h_angle_degree.append(math.atan(point_minus[i][1] / (eps + point_minus[i][0])))
+    h_angle_degree = np.array(h_angle_degree)
+    angle_a = defaultdict(int)
+    for i in range(len(h_angle_degree)):
+        angle_a[get_direction(h_angle_degree[i])] += 1
+
+    flag = 0
+    for i in range(8):
+        if i == 0 or i == 5:
+            continue
+        if angle_a[i]:
+            flag = 1
+    feature_dic['other direction'] = flag
+
 
 def get_horizon_angle(dots):
     """
@@ -717,8 +759,6 @@ def extract_features(file, with_label=True, prefix=''):
             for i in range(3):
                 smooth_feature = get_smooth(dots, i)
                 feature_dict = dict(smooth_feature, **feature_dict)
-
-            #v dis
 
             feature_dict = collections.OrderedDict(feature_dict)
 
