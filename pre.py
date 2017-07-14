@@ -242,6 +242,8 @@ def get_other_features(dots):
     if len(dots) > 1:
         x_back_num = (np.diff(x_dot) < 0).sum()
 
+    if x_back_num:
+        x_back_num = 1
     density_0 = get_density(dots, 0)
     density_1 = get_density(dots, 1)
     density_2 = get_density(dots, 2)
@@ -299,35 +301,34 @@ def get_y_min(dots):
     y = np.array(y)
     return [y.min()]
 
-
-def get_ab_direction(feature_dic, dots):
-    """
-    A, B, C ...
-    the angle between AB and the horizontal line
-    """
-    point_minus = []
-    for i in range(len(dots) - 1):
-        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
-    ab_angle = []
-    if len(point_minus):
-        for i in range(len(point_minus)):
-            angle_i = math.atan(point_minus[i][1] / (eps + point_minus[i][0]))
-            ab_angle.append(angle_i)
-        ab_angle = np.array(ab_angle)
-
-        feature_dic['ab_angle_mean'] = ab_angle.mean()
-        feature_dic['ab_angle_min'] = ab_angle.min()
-        feature_dic['ab_angle_max'] = ab_angle.max()
-        feature_dic['ab_angle_var'] = ab_angle.var()
-        feature_dic['ab_angle_range'] = ab_angle.max() - ab_angle.min()
-        feature_dic['ab_angle_kurt'] = sp.stats.kurtosis(ab_angle)
-    else:
-        feature_dic['ab_angle_mean'] = '$'
-        feature_dic['ab_angle_min'] = '$'
-        feature_dic['ab_angle_max'] = '$'
-        feature_dic['ab_angle_var'] = '$'
-        feature_dic['ab_angle_range'] = '$'
-        feature_dic['ab_angle_kurt'] = '$'
+#
+# def get_ab_direction(feature_dic, dots):
+#     """
+#     A, B, C ...
+#     the angle between AB and the horizontal line
+#     """
+#     point_minus = []
+#     for i in range(len(dots) - 1):
+#         point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
+#     ab_angle = []
+#     if len(point_minus):
+#         for i in range(len(point_minus)):
+#             angle_i = math.atan(point_minus[i][1] / (eps + point_minus[i][0]))
+#             ab_angle.append(angle_i)
+#         ab_angle = np.array(ab_angle)
+#         feature_dic['ab_angle_mean'] = ab_angle.mean()
+#         feature_dic['ab_angle_min'] = ab_angle.min()
+#         feature_dic['ab_angle_max'] = ab_angle.max()
+#         feature_dic['ab_angle_var'] = ab_angle.var()
+#         feature_dic['ab_angle_range'] = ab_angle.max() - ab_angle.min()
+#         feature_dic['ab_angle_kurt'] = sp.stats.kurtosis(ab_angle)
+#     else:
+#         feature_dic['ab_angle_mean'] = '$'
+#         feature_dic['ab_angle_min'] = '$'
+#         feature_dic['ab_angle_max'] = '$'
+#         feature_dic['ab_angle_var'] = '$'
+#         feature_dic['ab_angle_range'] = '$'
+#         feature_dic['ab_angle_kurt'] = '$'
 
 def get_angle_change(dots):
     """
@@ -457,19 +458,7 @@ def get_length_dots(dots):
     feature_dic['dots_num'] = len(dots)
     feature_dic['straight'] = sp.spatial.distance.euclidean((dots[0][0], dots[0][1]), (dots[-1][0], dots[-1][1]))/(eps +
                                                                                                         length_sum)
-    # negative features
-    # TCM = 0
-    # for i in range(len(dots) - 1):
-    #     TCM += (dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
-    #                                                      pow_2(dots[i][1] - dots[i+1][1]))
-    # TCM /= (length_sum + eps)
-    #
-    # SC = -TCM * TCM
-    # for i in range(len(dots) - 1):
-    #     SC += pow_2(dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
-    #                                                          pow_2(dots[i][1] - dots[i+1][1]))
-    # feature_dic['TCM'] = TCM
-    # feature_dic['SC'] = SC
+
     return feature_dic
 
 
@@ -483,30 +472,27 @@ def get_horizon_angle(dots):
     """
     point_minus = []
     for i in range(len(dots) - 1):
-        point_minus.append(dotMinus(dots[i + 1], dots[i]))
+        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
 
     h_angle_degree = []
     for i in range(len(point_minus)):
-        if point_minus[i] == 0:
-            h_angle_degree.append(1.57075)
-        else:
-            h_angle_degree.append(math.atan(point_minus[i][1] / (eps + point_minus[i][0])))
+        h_angle_degree.append(math.atan(point_minus[i][1] / (eps + point_minus[i][0])))
     h_angle_degree = np.array(h_angle_degree)
     feature_dic = {}
     if len(h_angle_degree):
         feature_dic['h_angle_kurt_angle'] = sp.stats.kurtosis(h_angle_degree)
-        # feature_dic['h_angle_mean'] = h_angle_degree.mean()
-        # feature_dic['h_angle_min'] = h_angle_degree.min()
+        feature_dic['h_angle_mean'] = h_angle_degree.mean()
+        feature_dic['h_angle_min'] = h_angle_degree.min()
         feature_dic['h_angle_max'] = h_angle_degree.max()
         feature_dic['h_angle_var'] = h_angle_degree.var()
-        # feature_dic['h_angle_range'] = h_angle_degree.max() - h_angle_degree.min()
+        feature_dic['h_angle_range'] = h_angle_degree.max() - h_angle_degree.min()
     else:
         feature_dic['h_angle_kurt_angle'] = '$'
-        # feature_dic['h_angle_mean'] = '$'
-        # feature_dic['h_angle_min'] = '$'
+        feature_dic['h_angle_mean'] = '$'
+        feature_dic['h_angle_min'] = '$'
         feature_dic['h_angle_max'] = '$'
         feature_dic['h_angle_var'] = '$'
-        # feature_dic['h_angle_range'] = '$'
+        feature_dic['h_angle_range'] = '$'
 
     if len(h_angle_degree) > 1:
         feature_dic['smooth_h_angle'] = np.std(np.diff(h_angle_degree)) / (eps + abs((np.diff(h_angle_degree)).mean()))
@@ -707,7 +693,7 @@ def extract_features(file, with_label=True, prefix=''):
             # angle changes, v, acc along the path
             angle_changes = get_angle_change(dots)
             feature_dict = dict(angle_changes, **feature_dict)
-            get_ab_direction(feature_dict, dots)
+            # get_ab_direction(feature_dict, dots)
 
             # get_horizon_angle
             feature_dict = dict(get_horizon_angle(dots), **feature_dict)
@@ -732,6 +718,8 @@ def extract_features(file, with_label=True, prefix=''):
                 smooth_feature = get_smooth(dots, i)
                 feature_dict = dict(smooth_feature, **feature_dict)
 
+            #v dis
+
             feature_dict = collections.OrderedDict(feature_dict)
 
             with codecs.open(prefix + 'feature_map', 'w', 'utf-8') as f_feature_map:
@@ -742,9 +730,6 @@ def extract_features(file, with_label=True, prefix=''):
                 for keyi in keys_list:
                     f_feature_map.write(keyi + '\n')
 
-            if(v_fs == {}) or (a_fs == {}):
-                f3.write('%s\n'%(ID))
-                continue
             features = ""
             for i, j in enumerate(feature_dict.values()):
                 if str(j) == '$':
