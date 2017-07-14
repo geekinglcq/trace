@@ -3,6 +3,7 @@ import numpy as np
 import operator
 import codecs
 
+from collections import defaultdict
 from sklearn.datasets import load_svmlight_file
 
 def train(traindata, testdata, modelfile):
@@ -95,7 +96,20 @@ def apply_rules(feature_file='./output/testsample-features', feature_map='./outp
     neg = neg.union(set(np.where(X[:, features['velocity_min_x_only_False_y_only_False']] > 0.5)[0]))
     
     return pos, neg    
-    
+
+def merge_model(pred1, k=0.5):
+    score = defaultdict(float)
+    for line in open('./data/gbm_prob.txt'):
+        i, j = line.strip().split(',')
+        i = int(float(i))
+        j = float(j)
+        score[i] = (1 - j) * (1 - k)
+    with open('./output/testid-map') as f:
+        idx = np.array([int(i.strip()) for i in f])
+    for i, j in enumerate(pred1):
+        score[idx[i]] = score[idx[i]] + (1 - pred1[i]) * k
+    return score
+
 def gen_ans_txt(pred, thresold=0.8, prex = ''):
     id_map = prex + 'id-map'
     with open(id_map) as f:
@@ -104,11 +118,11 @@ def gen_ans_txt(pred, thresold=0.8, prex = ''):
     ans = set()
     for i in idx[mask]:
         ans.add(i)
-    pos, neg = apply_rules()
-    print(len(ans & set(idx[list(pos)])))
-    print(len(set(idx[list(neg)]) - ans))
-    ans = ans - set(idx[list(pos)]) 
-    ans = ans.union(set(idx[list(neg)]))
+    # pos, neg = apply_rules()
+    # print(len(ans & set(idx[list(pos)])))
+    # print(len(set(idx[list(neg)]) - ans))
+    # ans = ans - set(idx[list(pos)]) 
+    # ans = ans.union(set(idx[list(neg)]))
     with open(prex + 'ans.txt', 'w') as f:
         for i in ans:
             f.write("%s\n"%(i))

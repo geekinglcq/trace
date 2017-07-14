@@ -14,6 +14,6 @@ if __name__ == '__main__':
     #extract_features('./data/dsjtzs_txfz_test1.txt', with_label=0, prefix='./output/test')
     print('finish extract features')
     pred = predict('./output/model', './output/testsample-features')
-    gen_ans_txt(pred, thresold=0.5, prex = './output/test')
+    gen_ans_txt(pred, thresold=0.9984, prex = './output/test')
     ed = time.time()
     print(ed - st)
