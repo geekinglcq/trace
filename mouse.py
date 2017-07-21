@@ -28,7 +28,7 @@ import lightgbm as lgb
 import xgboost as xgb
 import matplotlib
 import os
-
+#0.999953457624
 warnings.filterwarnings("ignore")
 import math
 
@@ -38,7 +38,7 @@ sub = 'sub'
 datadir = 'data'
 
 train_path = os.path.join(datadir, 'train_add_neg')
-test_path = os.path.join(datadir, 'dsjtzs_txfz_test1.txt')
+test_path = os.path.join(datadir, 'dsjtzs_txfz_testB.txt')
 
 if not os.path.exists(cache):
     os.mkdir(cache)
@@ -772,6 +772,7 @@ def get_feature(df):
     get_single_feature(df)
 
     # add our features
+    get_8_direction_radio(df, dots)
     for i in range(3):
         get_adja_distance(df, dots, i)
     # point coordinate features
@@ -796,6 +797,7 @@ def get_feature(df):
 
     # angle change between two lines
     get_angle_change(df, dots)
+    get_horizon_angle(df, dots)
 
     # lenght of dots
     get_length_dots(df, dots)
@@ -908,7 +910,8 @@ def lgb_train(train_x, train_y, test_x, test_y, save_model_file):
         'feature_fraction': 0.83,
         'bagging_fraction': 0.85,
         'bagging_freq': 5,
-        'verbose': 0
+        'verbose': 0,
+        'min_data_in_leaf':5
     }
 
     print('Start training...')
@@ -916,10 +919,10 @@ def lgb_train(train_x, train_y, test_x, test_y, save_model_file):
     gbm = lgb.train(params,
                     lgb_train,
                     num_boost_round=280,
-                    valid_sets=[lgb_train, lgb_eval],
+                    valid_sets=[lgb_train, lgb_train],
                     verbose_eval=True)
     gbm.save_model(save_model_file)
-    get_test_error(save_model_file, test_x, test_y)
+    # get_test_error(save_model_file, test_x, test_y)
 
 
 def inference(model_file, vali_data, instanceIDs):
@@ -929,13 +932,13 @@ def inference(model_file, vali_data, instanceIDs):
     res['prob'] = y
     res['id'] = res['id'].astype(int)
     res = res.sort_values(by='prob')
-    ans = res[res.prob < 0.5]
+    ans = res[res.prob <= 0.999953457624]
     with codecs.open('./sub/gbm_prob', 'w', 'utf-8') as f:
         for i in range(len(res)):
             idx = res.iloc[i].id
             pro = res.iloc[i].prob
             f.write(str(idx) + ',' + str(pro) + '\n')
-    res.iloc[0:20000].id.to_csv(os.path.join(sub, 'BDC20160706.txt'), header=None, index=False)
+    res[0:19000].id.to_csv(os.path.join(sub, 'BDC20160706.txt'), header=None, index=False)
 
 
 def get_data(model_file, vali_data, instanceIDs):
@@ -954,9 +957,10 @@ def get_data(model_file, vali_data, instanceIDs):
 
 if __name__ == '__main__':
     training_data, label, sub_training_data, instanceIDs = prepare_data(reuse_train=True, reuse_test=True)
-    # train_x, test_x, train_y, test_y = train_test_split(training_data, label, test_size=0.01, random_state=0)
-    #
-    # lgb_train(train_x, train_y, test_x, test_y, './lgb_model')
+    train_x, test_x, train_y, test_y = train_test_split(training_data, label, test_size=0, random_state=0)
+
+
+    lgb_train(train_x, train_y, test_x, test_y, './lgb_model')
 
     inference('./lgb_model', sub_training_data, instanceIDs)
     # get_data('./lgb_model', sub_training_data, instanceIDs)
