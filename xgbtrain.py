@@ -2,7 +2,7 @@ import xgboost as xgb
 import numpy as np
 import operator
 import codecs
-
+import time
 from collections import defaultdict
 from sklearn.datasets import load_svmlight_file
 
@@ -31,16 +31,19 @@ def train(traindata, testdata, modelfile):
     print('Model has been saved as %s\n'%(modelfile))
     return bst
 
-
-def tune_para(para, datafile):
+def show_cv(prefix='', lists=[], num_round=300):
+    param = {'eta': 0.05, 'max_depth': 8, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
+    for i in range(len(lists)):
+        print(lists[i])
+        tune_para(param, "%s%ssample-features"%(prefix, lists[i]), num_round)
+def tune_para(param, datafile, num_round):
     dtrain = xgb.DMatrix(datafile)
-    num_round = 2
-    print(para)
-    res = xgb.cv(param, dtrain, num_boost_round=10, nfold=5,
-             metrics={'error'}, seed = 0,
-             callbacks=[xgb.callback.print_evaluation(show_stdv=False),
-                        xgb.callback.early_stop(3)])
 
+    print(param)
+    res = xgb.cv(param, dtrain, num_boost_round=num_round, nfold=5,
+             metrics={'logloss'}, seed = int(time.time()),
+             callbacks=[xgb.callback.print_evaluation(show_stdv=False)])
+    return res
 def predict(modelfile, datafile):
     """
     Return predictation of datafile using model stored

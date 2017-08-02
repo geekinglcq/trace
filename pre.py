@@ -138,8 +138,10 @@ def get_acc_speed(dots, x_only=False, y_only=False):
         feature_dic['acc_max' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         feature_dic['acc_min' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
-        feature_dic['z_pre_acc'] = '$'
-        feature_dic['v_num_acc'] = '$'
+        feature_dic['z_pre_acc' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        feature_dic['v_num_acc'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        feature_dic['acc_init'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
+        feature_dic['VCrv'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         # feature_dic['acc_g_mean' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = '$'
         return feature_dic
     acc = []
@@ -158,10 +160,10 @@ def get_acc_speed(dots, x_only=False, y_only=False):
     feature_dic['acc_max' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.max()
     feature_dic['acc_min' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.min()
     feature_dic['acc_var' + str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.var()
-    feature_dic['z_pre_acc'] = z_per_acc
-    feature_dic['v_num_acc'] = v_num_acc
+    feature_dic['z_pre_acc'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = z_per_acc
+    feature_dic['v_num_acc'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = v_num_acc
     feature_dic['acc_init'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc[0]
-
+    feature_dic['VCrv'+ str('_x_only_') + str(x_only) + str('_y_only_') + str(y_only)] = acc.mean() / (eps + pow(1 + v.mean() * v.mean(), 1.5))
     return feature_dic
 
 
@@ -247,20 +249,20 @@ def get_other_features(dots):
 
     if x_back_num:
         x_back_num = 1
-    density_0 = get_density(dots, 0)
-    density_1 = get_density(dots, 1)
-    density_2 = get_density(dots, 2)
-
     pause = 0
 
     for i in range(len(dots) - 1):
         if dots[i + 1][0] == dots[i][0]:
             pause += 1
 
-    return {'go_back_x':x_back_num, 'density_2': density_2, 'density_0': density_0,
-            'density_1': density_1, 'pause': pause, 'x_init': dots[0][0], 'y_init': dots[0][1]}
+    return {'go_back_x':x_back_num, 'pause': pause, 'x_init': dots[0][0], 'y_init': dots[0][1]}
 
+def get_densities(dots):
+    density_0 = get_density(dots, 0)
+    density_1 = get_density(dots, 1)
+    density_2 = get_density(dots, 2)
 
+    return {'density_2': density_2, 'density_0': density_0, 'density_1': density_1}
 def get_density(dots, axis):
     """
     Features related to the density of points about x-ray
@@ -484,10 +486,11 @@ def get_direction(angle):
         return 7
 
 
-def get_8_direction_radio(feature_dic, dots):
+def get_8_direction_radio(dots):
+    feature_dic = {}
     point_minus = []
     for i in range(len(dots) - 1):
-        point_minus.append((dots[i+1][0] - dots[i][0], dots[i+1][1] - dots[i][1]))
+        point_minus.append((dots[i + 1][0] - dots[i][0], dots[i + 1][1] - dots[i][1]))
 
     h_angle_degree = []
     for i in range(len(point_minus)):
@@ -497,14 +500,14 @@ def get_8_direction_radio(feature_dic, dots):
     for i in range(len(h_angle_degree)):
         angle_a[get_direction(h_angle_degree[i])] += 1
 
-    flag = 0
+    mx_angle = 0
+    id = -1
     for i in range(8):
-        if i == 0 or i == 5:
-            continue
-        if angle_a[i]:
-            flag = 1
-    feature_dic['other direction'] = flag
-
+        if angle_a[i] > mx_angle:
+            mx_angle = angle_a[i]
+            id = i
+    feature_dic['other direction'] = id
+    return feature_dic
 
 def get_horizon_angle(dots):
     """
@@ -569,7 +572,7 @@ def get_horizon_angle(dots):
     #     feature_dic['h_angle_acc_min'] = h_angle_acc.min()
         feature_dic['h_angle_acc_max'] = h_angle_acc.max()
         feature_dic['h_angle_acc_var'] = h_angle_acc.var()
-    # else:
+    else:
     #     feature_dic['h_angle_acc_mean'] = '$'
     #     feature_dic['h_angle_acc_min'] = '$'
         feature_dic['h_angle_acc_max'] = '$'
@@ -578,7 +581,8 @@ def get_horizon_angle(dots):
     return feature_dic
 
 
-def point_to_line(data1, data2, p):
+
+def point_to_line(p, data1, data2):
     """
     get the dis of a point to a line
     """
@@ -587,7 +591,6 @@ def point_to_line(data1, data2, p):
     c = data1[0] * data2[1] - data1[1] * data2[0]
     td = (a * p[0] + b * p[1] + c) / (eps + math.sqrt(a * a + b * b))
     return td
-
 
 def curvature_distance(dots):
     """
@@ -619,12 +622,13 @@ def curvature_distance(dots):
     return feature_dic
 
 
-def get_curvature_rate(feature_dic, dots):
+def get_curvature_rate(dots):
     """
     curvature rate and curvature rate diff
     """
     c_angle_degree = []
     l_dis = []
+    feature_dic = {}
     for i in range(len(dots)):
         c_angle_degree.append(math.atan(dots[i][1] / (eps + dots[i][0])))
         # l_dis.append(sp.spatial.distance.euclidean((dots[i][0], dots[i][1]), (0, 0)))
@@ -671,9 +675,74 @@ def get_curvature_rate(feature_dic, dots):
         feature_dic['curvature_rate_range'] = '$'
         feature_dic['curvature_rate_var'] = '$'
         feature_dic['curvature_rate_kurt_angle'] = '$'
+    return feature_dic
+def get_adja_distance(dots, axis):
+    """
+    the distance between the adjacent dots
+    dots_distance min, mean, range, kurt
+    """
+    feature_dic = {}
+    dis = []
+    for i in range(len(dots) - 1):
+        x = [dots[i][0], dots[i][1]]
+        y = [dots[i + 1][0], dots[i + 1][1]]
+        if axis == 0:
+            x[1] = 0
+            y[1] = 0
+        elif axis == 1:
+            x[0] = 0
+            y[0] = 0
+        dis.append(ssp.distance.euclidean(x, y))
+    dis = np.array(dis)
+    if len(dis):
+        feature_dic['adjacent_dis_min' + str(axis)] = dis.min()
+        feature_dic['adjacent_dis_mean' + str(axis)] = dis.mean()
+        feature_dic['adjacent_dis_range' + str(axis)] = dis.max() - dis.min()
+        feature_dic['adjacent_dis_kurt' + str(axis)] = sp.stats.kurtosis(dis)
+        feature_dic['adjacent_dis_same_pre' + str(axis)] = len(set(dis)) / len(dis)
+    return feature_dic
+
+# new feature
+def get_md_dis(dots):
+    """
+    max dis to the line st-ed
+    """
+    feature_dic = {}
+    md_dis = []
+    for i in range(len(dots)):
+        md_dis.append(point_to_line(dots[i], dots[0], dots[-1]))
+    md_dis = np.array(md_dis)
+    idx = np.argmax(md_dis)
+    feature_dic['md_dis_mx'] = md_dis.max()
+    feature_dic['md_dis_var'] = md_dis.var()
+    feature_dic['md_dis_mean'] = md_dis.mean()
+    feature_dic['md_dis_time'] = dots[idx][2] - dots[0][2]
+    return feature_dic
+
+def get_center_mass(dots):
+    feature_dic = {}
+    TCM = 0
+    length_sum = 0
+    SC = 0
+    if len(dots) > 1:
+        for i in range(len(dots) - 1):
+            length_sum += math.sqrt(pow_2(dots[i + 1][1] - dots[i][1]) + pow_2(dots[i + 1][0] - dots[i][0]))
+        for i in range(len(dots) - 1):
+            TCM += (dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
+                                                             pow_2(dots[i][1] - dots[i+1][1]))
+        TCM /= (length_sum + eps)
+
+        for i in range(len(dots) - 1):
+            SC += pow_2(dots[i + 1][2] - dots[i][2]) * math.sqrt(pow_2(dots[i][0] - dots[i+1][0]) +
+                                                          pow_2(dots[i][1] - dots[i+1][1]))
+        SC /= (length_sum + eps)
+        SC  -= TCM * TCM
+    feature_dic['TCM'] = TCM
+    feature_dic['SC'] = SC
+    return feature_dic
 
 
-def extract_features(file, with_label=True, prefix=''):
+def extract_features(file, with_label=True, prefix='', feature_used=[]):
     """
     Extract features and save features in LibSVM format
     Input: dataset filename
@@ -703,76 +772,107 @@ def extract_features(file, with_label=True, prefix=''):
             label = sample[3]
 
             feature_dict = dict()
-            # point coordinate features
-            point_coordx_f = get_dis(dots, 0)
-            feature_dict = dict(point_coordx_f, **feature_dict)
+            features_list = [
+                "get_dis(dots, 0)", #0 4
+                "get_dis(dots, 1)", #1 4
+                "get_velocity(dots)", #2 5
+                "get_velocity(dots, x_only=True)", #3 5
+                "get_velocity(dots, y_only=True)", #4 5
+                "get_acc_speed(dots, y_only=True)", #5 7
+                "get_acc_speed(dots, x_only=True)", #6 7
+                "get_acc_speed(dots)", #7 7
+                "toward_dest(dots, sample[2])", #8 4
+                "get_angle_change(dots)", #9 7
+                "get_horizon_angle(dots)", #10 12 
+                "curvature_distance(dots)", #11 5
+                "get_other_features(dots)", #12 4
+                "get_time_feature(dots)", #13 3
+                "get_length_dots(dots)", #14 2
+                "get_smooth(dots, 1)", #15 1
+                "get_smooth(dots, 2)", #16 1
+                "get_smooth(dots, 0)", #17 1
+                "get_densities(dots)", #18 3
+                "get_curvature_rate(dots)", #19 9
+                "get_8_direction_radio(dots)", #20 1
+                "get_adja_distance(dots, 0)", #21 5
+                "get_adja_distance(dots, 1)", #22 5
+                "get_adja_distance(dots, 2)", #23 5
+                "get_md_dis(dots)", #24 4
+                "get_center_mass(dots)" #25 2
+            ]
+            for i in feature_used:
+                temp = eval(features_list[i])
+                feature_dict = dict(temp, **feature_dict)
+            # # point coordinate features
+            # point_coordx_f = get_dis(dots, 0)
+            # feature_dict = dict(point_coordx_f, **feature_dict)
 
-            point_coordy_f = get_dis(dots, 1)
-            feature_dict = dict(point_coordy_f, **feature_dict)
+            # point_coordy_f = get_dis(dots, 1)
+            # feature_dict = dict(point_coordy_f, **feature_dict)
 
-            # velocity features
-            v_fs = get_velocity(dots)
-            feature_dict = dict(v_fs, **feature_dict)
+            # # velocity features
+            # v_fs = get_velocity(dots)
+            # feature_dict = dict(v_fs, **feature_dict)
 
-            v_fs_x_only = get_velocity(dots, x_only=True)
-            feature_dict = dict(v_fs_x_only, **feature_dict)
+            # v_fs_x_only = get_velocity(dots, x_only=True)
+            # feature_dict = dict(v_fs_x_only, **feature_dict)
 
-            v_fs_y_only = get_velocity(dots, y_only=True)
-            feature_dict = dict(v_fs_y_only, **feature_dict)
+            # v_fs_y_only = get_velocity(dots, y_only=True)
+            # feature_dict = dict(v_fs_y_only, **feature_dict)
 
-            # acc features
-            a_fs_y_only = get_acc_speed(dots, y_only=True)
-            feature_dict = dict(a_fs_y_only, **feature_dict)
+            # # acc features
+            # a_fs_y_only = get_acc_speed(dots, y_only=True)
+            # feature_dict = dict(a_fs_y_only, **feature_dict)
 
-            a_fs_x_only = get_acc_speed(dots, x_only=True)
-            feature_dict = dict(a_fs_x_only, **feature_dict)
+            # a_fs_x_only = get_acc_speed(dots, x_only=True)
+            # feature_dict = dict(a_fs_x_only, **feature_dict)
 
-            a_fs = get_acc_speed(dots)
-            feature_dict = dict(a_fs, **feature_dict)
+            # a_fs = get_acc_speed(dots)
+            # feature_dict = dict(a_fs, **feature_dict)
 
-            # dot to dest
-            dot_to_dest = toward_dest(dots, sample[2])
-            feature_dict = dict(dot_to_dest, **feature_dict)
+            # # dot to dest
+            # dot_to_dest = toward_dest(dots, sample[2])
+            # feature_dict = dict(dot_to_dest, **feature_dict)
 
-            # angle changes, v, acc along the path
-            try:
-                angle_changes = get_angle_change(dots)
-            except ValueError:
-                print(ID, dots)
-                continue
+            # # angle changes, v, acc along the path
+            # try:
+            #     angle_changes = get_angle_change(dots)
+            # except ValueError:
+            #     print(ID, dots)
+            #     continue
 
-            feature_dict = dict(angle_changes, **feature_dict)
-            # get_ab_direction(feature_dict, dots)
+            # feature_dict = dict(angle_changes, **feature_dict)
+            # # get_ab_direction(feature_dict, dots)
 
-            # get_horizon_angle
-            feature_dict = dict(get_horizon_angle(dots), **feature_dict)
+            # # get_horizon_angle
+            # feature_dict = dict(get_horizon_angle(dots), **feature_dict)
 
-            # get curvature_distance in the trace
-            feature_dict = dict(curvature_distance(dots), **feature_dict)
-            get_curvature_rate(feature_dict, dots)
+            # # get curvature_distance in the trace
+            # feature_dict = dict(curvature_distance(dots), **feature_dict)
+            # get_curvature_rate(feature_dict, dots)
 
-            # other features
-            other_features = get_other_features(dots)
-            feature_dict = dict(other_features, **feature_dict)
+            # # other features
+            # other_features = get_other_features(dots)
+            # feature_dict = dict(other_features, **feature_dict)
 
-            # time series features
-            time_features = get_time_feature(dots)
-            feature_dict = dict(time_features, **feature_dict)
+            # # time series features
+            # time_features = get_time_feature(dots)
+            # feature_dict = dict(time_features, **feature_dict)
 
-            # length of the dots
-            feature_dict = dict(get_length_dots(dots), **feature_dict)
+            # # length of the dots
+            # feature_dict = dict(get_length_dots(dots), **feature_dict)
 
-            # Smooth
-            for i in range(3):
-                smooth_feature = get_smooth(dots, i)
-                feature_dict = dict(smooth_feature, **feature_dict)
+            # # Smooth
+            # for i in range(3):
+            #     smooth_feature = get_smooth(dots, i)
+            #     feature_dict = dict(smooth_feature, **feature_dict)
             
-            feature_dict['acc_min_x_only_True_y_only_False^2 + angle_min^2'] = pow(feature_dict['acc_min_x_only_True_y_only_False'], 2) + pow(feature_dict['angle_min'],2)
-            feature_dict['acc_min_x_only_False_y_only_False^2 + go_back^2'] = pow(feature_dict['acc_min_x_only_False_y_only_False'], 2) + pow(feature_dict['go_back_x'], 2)
-            feature_dict['point_coordinate_min1^2 + point_coordinate_mean0^2'] = pow(feature_dict['point_coordinate_min1'], 2) + pow(feature_dict['point_coordinate_mean0'], 2)
+            # feature_dict['acc_min_x_only_True_y_only_False^2 + angle_min^2'] = pow(feature_dict['acc_min_x_only_True_y_only_False'], 2) + pow(feature_dict['angle_min'],2)
+            # feature_dict['acc_min_x_only_False_y_only_False^2 + go_back^2'] = pow(feature_dict['acc_min_x_only_False_y_only_False'], 2) + pow(feature_dict['go_back_x'], 2)
+            # feature_dict['point_coordinate_min1^2 + point_coordinate_mean0^2'] = pow(feature_dict['point_coordinate_min1'], 2) + pow(feature_dict['point_coordinate_mean0'], 2)
             # feature_dict['1/angle_v_var + 1/velocity_init_x_only_False_y_only_False'] = 1 / feature_dict['angle_v_var'] + 1 / feature_dict['velocity_init_x_only_False_y_only_False']
-            feature_dict['point_coordinate_min0^2 + curvature_distance_var^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['curvature_distance_var'], 2)
-            feature_dict['point_coordinate_min0^2 + time_interval_mean^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['time_interval_mean'], 2)
+            # feature_dict['point_coordinate_min0^2 + curvature_distance_var^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['curvature_distance_var'], 2)
+            # feature_dict['point_coordinate_min0^2 + time_interval_mean^2'] = pow(feature_dict['point_coordinate_min0'], 2) + pow(feature_dict['time_interval_mean'], 2)
 
             feature_dict = collections.OrderedDict(feature_dict)
 
@@ -789,5 +889,8 @@ def extract_features(file, with_label=True, prefix=''):
                 if str(j) == '$':
                     continue
                 features = features + str(i) + ':' + str(j) + ' '
+            # print(features)
             f.write('%s %s\n'%(label, features))
             f2.write('%s\n' %ID)
+    f.close()
+    f2.close()
