@@ -36,6 +36,15 @@ def show_cv(prefix='', lists=[], num_round=300):
     for i in range(len(lists)):
         print(lists[i])
         tune_para(param, "%s%ssample-features"%(prefix, lists[i]), num_round)
+
+def show_cv2(dtrain, num_round=500):
+    param = {'eta': 0.05, 'max_depth': 8, 'objective': 'binary:logistic', 'silent': 1, 'subsample': 0.5}
+    print(param)
+    res = xgb.cv(param, dtrain, num_boost_round=num_round, nfold=5,
+             metrics={'logloss'}, seed = int(time.time()),
+             callbacks=[xgb.callback.print_evaluation(show_stdv=False)])
+    return res
+
 def tune_para(param, datafile, num_round):
     dtrain = xgb.DMatrix(datafile)
 
